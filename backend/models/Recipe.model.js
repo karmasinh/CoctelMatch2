@@ -34,7 +34,7 @@ const recipeSchema = new Schema({
     value:Number,
     no_of_votes:Number
   },
-});
+}, { timestamps: true });
 
 const Recipe = mongoose.model("Recipe", recipeSchema);
 

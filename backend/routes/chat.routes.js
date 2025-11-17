@@ -4,11 +4,18 @@ const chatRouter = express.Router();
 
 // Router to create chat between
 chatRouter.post("/addmessage", async (req, res) => {
-  console.log(req.body);
   try {
-    const newChat = new ChatModel(req.body);
+    const payload = req.body || {};
+    const newChat = new ChatModel({
+      sender: payload.sender,
+      receiver: payload.receiver,
+      message: payload.message || "",
+      type: payload.type || "text",
+      attachments: Array.isArray(payload.attachments) ? payload.attachments : [],
+      time: payload.time,
+    });
     await newChat.save();
-    res.status(200).send({ message: "Chat created" });
+    res.status(200).send({ message: "Mensaje enviado" });
   } catch (error) {
     res.status(400).send({ error: error.message });
   }

@@ -42,6 +42,7 @@ import styled from "@emotion/styled";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Carousel } from "../components/Feed/SingleRecipeCarousel";
 import { AddCocktailModal } from "./AddCocktailModal";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 export const Explore = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -54,7 +55,13 @@ export const Explore = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedOption, setSelectedOption] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
   const [sortLatest, setSortLatest] = useState(false);
+  const [applySearch, setApplySearch] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const inputRef = React.useRef(null);
+  const dropdownRef = React.useRef(null);
   const handleImpressionChange = (event) => {
     setImpression(event.target.value);
   };
@@ -123,7 +130,7 @@ export const Explore = () => {
     setLoading(true);
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
     axios
-      .get(`${process.env.REACT_APP_API_URL}/recipe/getAllRecipe`, {
+      .get(`${API}/recipe/getAllRecipe`, {
         params: {
           impression: impression || undefined,
           veg: selectedOption || undefined,
@@ -136,6 +143,7 @@ export const Explore = () => {
             selectedFlavors && selectedFlavors.length > 0
               ? JSON.stringify(selectedFlavors)
               : undefined,
+          q: applySearch && searchText ? searchText : undefined,
         },
         headers,
       })
@@ -155,9 +163,42 @@ export const Explore = () => {
         console.log(err);
         setLoading(false);
       });
-  }, [filter, impression, selectedOption, selectedCuisines, sortLatest]);
+    // Reset applySearch so que no dispare múltiples veces
+    if (applySearch) setApplySearch(false);
+  }, [filter, impression, selectedOption, selectedCuisines, sortLatest, applySearch]);
 
   console.log(recipe, "recipe");
+
+  // Autocompletado de títulos
+  useEffect(() => {
+    const handler = setTimeout(async () => {
+      try {
+        if (!searchText || searchText.trim().length === 0) { setSuggestions([]); setSuggestionsOpen(false); return; }
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+        const { data } = await axios.get(`${API}/recipe/getAllRecipe`, { params: { q: searchText }, headers });
+        const titles = Array.isArray(data) ? data.map((r) => r.title).filter(Boolean) : [];
+        const unique = Array.from(new Set(titles)).slice(0, 6);
+        setSuggestions(unique);
+        setSuggestionsOpen(unique.length > 0);
+      } catch (_) {
+        setSuggestions([]);
+        setSuggestionsOpen(false);
+      }
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchText]);
+
+  // Cerrar sugerencias al hacer click fuera
+  useEffect(() => {
+    const onDocClick = (e) => {
+      const tgt = e.target;
+      if (dropdownRef.current && dropdownRef.current.contains(tgt)) return;
+      if (inputRef.current && inputRef.current.contains(tgt)) return;
+      setSuggestionsOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   // Categorías de cócteles (español)
   const cuisines = [
@@ -228,8 +269,23 @@ export const Explore = () => {
                 outline="none"
                 borderColor="text"
                 _focus={{ borderColor: "primary.500" }}
+                value={searchText}
+                onChange={(e) => { setSearchText(e.target.value); if (e.target.value.trim().length > 0) setSuggestionsOpen(true); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { setApplySearch(true); setSuggestionsOpen(false); } }}
+                onFocus={() => { if (suggestions.length > 0) setSuggestionsOpen(true); }}
+                onClick={() => { if (suggestions.length > 0) setSuggestionsOpen((prev) => !prev); }}
+                ref={inputRef}
               />
             </InputGroup>
+            {suggestionsOpen && suggestions.length > 0 && (
+              <Box ref={dropdownRef} bg="background" borderWidth="1px" borderColor="borderColor" borderRadius="md" p={2} position="absolute" mt={12} w="30%" zIndex={10}>
+                <VStack align="stretch" spacing={1}>
+                  {suggestions.map((s) => (
+                    <Button key={s} variant="ghost" justifyContent="flex-start" onClick={() => { setSearchText(s); setApplySearch(true); setSuggestionsOpen(false); }}>{s}</Button>
+                  ))}
+                </VStack>
+              </Box>
+            )}
             <Heading as="h5" size="md" color="text">
               Búsqueda avanzada
             </Heading>
@@ -392,7 +448,7 @@ export const Explore = () => {
                       src={`${process.env.REACT_APP_API_URL}/${ele.images[0]}`}
                       alt="Card"
                     /> */}
-                    <Carousel height={"300px"} images={ele?.images} />
+                    <Image height={"300px"} w="100%" objectFit="cover" src={`${API}/${ele?.images?.[0]}`} alt={ele.title} />
                   </CardHeader>
                   <Divider w="90%" mx="auto"></Divider>
                   <Box p="1rem">

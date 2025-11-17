@@ -22,6 +22,7 @@ import {
   Center,
   Divider,
   HStack,
+  VStack,
   Tag,
   Drawer,
   DrawerContent,
@@ -57,6 +58,8 @@ import { Carousel } from "../components/Feed/SingleRecipeCarousel";
 import { BiShare } from "react-icons/bi";
 import { GiExitDoor } from "react-icons/gi";
 import { IoFastFoodOutline } from "react-icons/io5";
+import { buildImageUrl } from "../utils/media";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 export default function AdminNew() {
   const { isOpen, onClose, onOpen } = useDisclosure();
@@ -78,7 +81,7 @@ export default function AdminNew() {
     };
 
     axios
-      .get(`${process.env.REACT_APP_API_URL}/users/getAllUsers/admin`, config)
+      .get(`${API}/users/getAllUsers/admin`, config)
       .then((res) => {
         setUser(res.data);
         // setLoading(false)
@@ -97,7 +100,7 @@ export default function AdminNew() {
     };
 
     axios
-      .get(`${process.env.REACT_APP_API_URL}/recipe/getAllRecipe`, config)
+      .get(`${API}/recipe/getAllRecipe`, config)
       .then((res) => {
         setRecipe(res.data);
       })
@@ -284,7 +287,7 @@ export default function AdminNew() {
                         </Box>
                       </Box>
                     </Center>
-                    <Flex flexWrap="wrap" justifyContent="space-between">
+                  <Flex flexWrap="wrap" justifyContent="space-between">
                       <Box
                         flex="1"
                         maxW="lg"
@@ -311,7 +314,7 @@ export default function AdminNew() {
                           {user?.length}
                         </Text>
                         <Text fontSize="lg" color="white">
-                          User registered
+                          Usuarios registrados
                         </Text>
                       </Box>
                       <Box
@@ -340,6 +343,47 @@ export default function AdminNew() {
                         <Text fontSize="lg" color="white">
         Total de cócteles
                         </Text>
+                      </Box>
+                    </Flex>
+                    <Flex flexWrap="wrap" justifyContent="space-between">
+                      <Box flex="1" maxW="lg" bg="teal.500" p="3" m="4" borderRadius="md" textAlign="center">
+                        <Heading size="sm" color="white">Top mixólogos</Heading>
+                        <VStack mt={2} spacing={1} align="stretch">
+                          {user
+                            .map((u) => ({ name: u.name, count: (u.recipes || []).length }))
+                            .sort((a, b) => b.count - a.count)
+                            .slice(0, 5)
+                            .map((u, idx) => (
+                              <Flex key={idx} justify="space-between">
+                                <Text color="white">{u.name}</Text>
+                                <Tag colorScheme="whiteAlpha">{u.count}</Tag>
+                              </Flex>
+                            ))}
+                        </VStack>
+                      </Box>
+                      <Box flex="1" maxW="lg" bg="purple.500" p="3" m="4" borderRadius="md" textAlign="center">
+                        <Heading size="sm" color="white">Etiquetas populares</Heading>
+                        <HStack mt={2} spacing={2} wrap="wrap">
+                          {Array.from(new Map(
+                            (recipe || []).flatMap((r) => (r.tags || [])).map((t) => [t, ((recipe || []).reduce((acc, r) => acc + ((r.tags || []).includes(t) ? 1 : 0), 0))])
+                          ).entries())
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 10)
+                            .map(([t, c], idx) => (
+                              <Tag key={t + idx} colorScheme="whiteAlpha">{t}</Tag>
+                            ))}
+                        </HStack>
+                      </Box>
+                      <Box flex="1" maxW="lg" bg="blue.500" p="3" m="4" borderRadius="md" textAlign="center">
+                        <Heading size="sm" color="white">Actividad reciente</Heading>
+                        <VStack mt={2} spacing={1} align="stretch">
+                          {(recipe || [])
+                            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+                            .slice(0, 5)
+                            .map((r, idx) => (
+                              <Text key={idx} color="white">{r.title}</Text>
+                            ))}
+                        </VStack>
                       </Box>
                     </Flex>
                     <Box
@@ -378,7 +422,7 @@ export default function AdminNew() {
                               <Avatar
                                 size="lg"
                                 name={ele?.name}
-                                src={`${process.env.REACT_APP_API_URL}/${ele?.profileImage}`}
+                                src={buildImageUrl(ele?.profileImage)}
                               />
                               <Flex flexDir={"column"} textAlign={"left"}>
                                 <Heading size={"md"} fontWeight={"bold"}>
@@ -425,7 +469,7 @@ export default function AdminNew() {
                                             <Avatar
                                               size="lg"
                                               name={e?.name}
-                                              src={`${process.env.REACT_APP_API_URL}/${e?.profileImage}`}
+                                              src={buildImageUrl(e?.profileImage)}
                                             />
                                             <Flex
                                               flexDir={"column"}
@@ -455,7 +499,7 @@ export default function AdminNew() {
                                       <Image
                                         height={"200px"}
                                         width={"200px"}
-                                        src={`${process.env.REACT_APP_API_URL}/${e?.images[0]}`}
+                                        src={buildImageUrl(e?.images?.[0])}
                                       />
                                       <Text fontWeight={"bold"}>
                                         {e?.title}
@@ -507,7 +551,7 @@ export default function AdminNew() {
                                   <Avatar
                                     size="lg"
                                     name={ele?.userId?.name}
-                                    src={`${process.env.REACT_APP_API_URL}/${ele?.userId?.profileImage}`}
+                                    src={buildImageUrl(ele?.userId?.profileImage)}
                                   />
                                   <Flex flexDir={"column"} textAlign={"left"}>
                                     <Text fontWeight={"bold"}>

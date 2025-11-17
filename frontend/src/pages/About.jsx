@@ -1,17 +1,25 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Heading, Text, SimpleGrid, Image, Stack, Divider } from "@chakra-ui/react";
+import axios from "axios";
+import DOMPurify from "dompurify";
 
 const About = () => {
+  const [settings, setSettings] = useState(null);
+  const base = process.env.REACT_APP_API_URL || "";
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await axios.get(`${base}/settings`);
+        setSettings(data?.settings || null);
+      } catch (_) {}
+    })();
+  }, []);
   return (
     <Box width="min(80rem,100%)" mx="auto" px={4} py={10}>
       <Heading size={{ lg: "xl", md: "lg", base: "md" }} mb={4}>
-        Acerca de CocktailMatch
+        {settings?.about?.title || "Acerca de CocktailMatch"}
       </Heading>
-      <Text color="gray.700" mb={6}>
-        CocktailMatch es una plataforma para descubrir, crear y compartir cócteles. 
-        Reúne recetas de bartenders y aficionados, integra técnicas de mixología moderna y 
-        te guía paso a paso para preparar bebidas increíbles.
-      </Text>
+      <Text color="gray.700" mb={6} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(settings?.about?.content || `CocktailMatch es una plataforma para descubrir, crear y compartir cócteles. Reúne recetas de bartenders y aficionados, integra técnicas de mixología moderna y te guía paso a paso para preparar bebidas increíbles.`) }} />
 
       <Divider my={6} />
       <Heading size="md" mb={3}>¿Qué es la mixología?</Heading>
@@ -49,7 +57,7 @@ const About = () => {
         <br />- Prueba el modo guiado de preparación con temporizador.
       </Text>
 
-      <Image src="/images/loginImage.jpg" alt="Mixología" borderRadius="lg" />
+      <Image src={settings?.about?.image ? `${base}/${settings.about.image}` : "/images/loginImage.jpg"} alt="Mixología" borderRadius="lg" />
     </Box>
   );
 };

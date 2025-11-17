@@ -16,11 +16,12 @@ import {
   GET_LOGGEDUSER_ERROR,
 } from "./actionTypes";
 import axios from "axios";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 export const createUser = (newUser, toast, navigate) => async (dispatch) => {
   dispatch({ type: CREATE_USER_LOADING });
   try {
     const response = await axios.post(
-      `${process.env.REACT_APP_API_URL}/auth/signup`,
+      `${API}/auth/signup`,
       newUser,
       {
         headers: {
@@ -32,7 +33,7 @@ export const createUser = (newUser, toast, navigate) => async (dispatch) => {
     console.log(response);
     dispatch({ type: CREATE_USER_SUCCESS });
     toast({
-      title: "SignUp successfull",
+      title: "Registro exitoso",
       description: `${response.data.message}`,
       status: "success",
       duration: 3000,
@@ -43,8 +44,8 @@ export const createUser = (newUser, toast, navigate) => async (dispatch) => {
     console.log(error);
     dispatch({ type: CREATE_USER_ERROR });
     toast({
-      title: "SignUp Failed",
-      description: `${error.response.data.message}`,
+      title: "Error al registrarse",
+      description: `${error.response?.data?.message || "Inténtalo más tarde"}`,
       status: "error",
       duration: 9000,
       isClosable: true,
@@ -56,7 +57,7 @@ export const loginUser = (userObj, toast, navigate) => async (dispatch) => {
   dispatch({ type: LOGIN_USER_LOADING });
   try {
     const response = await axios.post(
-      `${process.env.REACT_APP_API_URL}/auth/login`,
+      `${API}/auth/login`,
       userObj,
       {
         headers: {
@@ -79,11 +80,11 @@ export const loginUser = (userObj, toast, navigate) => async (dispatch) => {
           },
         };
         const userRes = await axios.get(
-          `${process.env.REACT_APP_API_URL}/users`,
+          `${API}/users`,
           config
         );
         const userWithProfileImage = userRes.data.user;
-        userWithProfileImage.profileImage = `${process.env.REACT_APP_API_URL}/${userWithProfileImage.profileImage}`;
+        userWithProfileImage.profileImage = `${API}/${userWithProfileImage.profileImage}`;
         dispatch({ type: GET_LOGGEDUSER_SUCCESS, payload: userWithProfileImage });
       } catch (err) {
         // En caso de fallo, dejamos el flujo continuar; la app intentará cargar el usuario en páginas que lo requieran
@@ -91,7 +92,7 @@ export const loginUser = (userObj, toast, navigate) => async (dispatch) => {
       }
 
       toast({
-        title: "Login Successfull",
+        title: "Inicio de sesión exitoso",
         description: `${response.data.message}`,
         status: "success",
         duration: 3000,
@@ -103,8 +104,8 @@ export const loginUser = (userObj, toast, navigate) => async (dispatch) => {
     console.log(error);
     dispatch({ type: LOGIN_USER_ERROR });
     toast({
-      title: "Login Failed",
-      description: `${error.response.data.message}`,
+      title: "Error al iniciar sesión",
+      description: `${error.response?.data?.message || "Verifica tus credenciales"}`,
       status: "error",
       duration: 3000,
       isClosable: true,
@@ -121,12 +122,12 @@ export const logoutUser = (token, toast, navigate) => async (dispatch) => {
 
   try {
     const response = await axios.get(
-      `${process.env.REACT_APP_API_URL}/auth/logout`,
+      `${API}/auth/logout`,
       config
     );
     localStorage.removeItem("token");
     toast({
-      title: "Logout Successfull",
+      title: "Sesión cerrada",
       description: `${response.data.message}`,
       status: "success",
       duration: 3000,
@@ -136,8 +137,8 @@ export const logoutUser = (token, toast, navigate) => async (dispatch) => {
   } catch (error) {
     console.log("Error whlie logging out:", error);
     toast({
-      title: "Logout Failed",
-      description: `${error.response.data.message}`,
+      title: "Error al cerrar sesión",
+      description: `${error.response?.data?.message || "Inténtalo más tarde"}`,
       status: "error",
       duration: 3000,
       isClosable: true,
@@ -157,19 +158,19 @@ export const getUserData = (token, toast) => async (dispatch) => {
   };
   try {
     const response = await axios.get(
-      `${process.env.REACT_APP_API_URL}/users`,
+      `${API}/users`,
       config
     );
     console.log(response.data.user);
     const userWithProfileImage = response.data.user;
-    userWithProfileImage.profileImage = `${process.env.REACT_APP_API_URL}/${userWithProfileImage.profileImage}`;
+    userWithProfileImage.profileImage = `${API}/${userWithProfileImage.profileImage}`;
     dispatch({ type: GET_LOGGEDUSER_SUCCESS, payload: userWithProfileImage });
   } catch (error) {
     console.log("Error fetching user data:", error);
     dispatch({ type: GET_LOGGEDUSER_ERROR });
     toast({
-      title: "Failed To Load User Details",
-      description: `${error.response.data.message}`,
+      title: "No se pudieron cargar tus datos",
+      description: `${error.response?.data?.message || "Inténtalo más tarde"}`,
       status: "error",
       duration: 3000,
       isClosable: true,
@@ -181,21 +182,21 @@ export const getUserData = (token, toast) => async (dispatch) => {
 export const updateUserDetails =
   (id, newData, headers, toast) => (dispatch) => {
     axios
-      .patch(`${process.env.REACT_APP_API_URL}/users/update/${id}`, newData, {
+      .patch(`${API}/users/update/${id}`, newData, {
         headers: headers,
       })
       .then((res) => {
         console.log(res.data.updatedUser, "data in action from backend");
         const updated = res.data.updatedUser;
         if (updated && updated.profileImage) {
-          updated.profileImage = `${process.env.REACT_APP_API_URL}/${updated.profileImage}`;
+          updated.profileImage = `${API}/${updated.profileImage}`;
         }
         dispatch({
           type: UPDATE_USER_DETAILS,
           payload: updated,
         });
         toast({
-          title: "Your data was successfully updated",
+          title: "Datos actualizados",
           description: `${res.data.status}`,
           status: "success",
           duration: 3000,
@@ -204,8 +205,8 @@ export const updateUserDetails =
       })
       .catch((err) => {
         toast({
-          title: "Your data was successfully updated",
-          description: `${err.response.data.message}`,
+          title: "Error al actualizar tus datos",
+          description: `${err.response?.data?.message || "Inténtalo más tarde"}`,
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -222,7 +223,7 @@ export const getUserRecipes = (id, token) => (dispatch) => {
   };
   axios
     .get(
-      `${process.env.REACT_APP_API_URL}/recipe/getMyRecipe?populate=recipes`,
+      `${API}/recipe/getMyRecipe?populate=recipes`,
       config
     )
     .then((response) => {
@@ -244,7 +245,7 @@ export const getAllRecipes = (token) => {
     },
   };
   return axios
-    .get(`${process.env.REACT_APP_API_URL}/recipe/getAllRecipe`, config)
+    .get(`${API}/recipe/getAllRecipe`, config)
     .then((res) => {
       console.log(res.data);
     })

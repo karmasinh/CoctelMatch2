@@ -9,7 +9,7 @@ import { PrivateRoute } from "./PrivateRoute";
 import { AddCocktailModal } from "../pages/AddCocktailModal";
 import SingleRecipe from "../pages/SingleRecipe";
 import Admin from "../pages/Admin";
-import { SingleUser } from "../pages/SingleUser";
+import SingleUser from "../pages/SingleUser";
 import AdminNew from "../pages/AdminNew";
 import AdminIngredients from "../pages/AdminIngredients";
 import AdminUsers from "../pages/AdminUsers";

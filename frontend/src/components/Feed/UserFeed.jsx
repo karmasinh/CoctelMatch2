@@ -30,7 +30,7 @@ export const UserFeed = () => {
   }, []);
 
   return (
-    <Box p={5} w="50%" h="90vh" overflowY="scroll" className="scroll">
+    <Box p={5} w="100%" maxW="min(80rem, 100%)" mx="auto">
       {isLoading ? (
         // Display loading state if the data is still being fetched
         <Flex alignItems="center" justifyContent={"center"} minH={"50vh"}>
@@ -46,8 +46,8 @@ export const UserFeed = () => {
           />
         </Flex>
       ) : feed.length > 0 ? (
-        feed.map((recipe, index) => {
-          return <FeedCard key={index} recipe={recipe} />;
+        feed.map((recipe) => {
+          return <FeedCard key={recipe._id} recipe={recipe} />;
         })
       ) : (
         <Heading as="h2">Nothing In Feed</Heading>

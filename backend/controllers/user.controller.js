@@ -53,11 +53,13 @@ exports.updateUser = async (req, res, next) => {
       const recipe = await Recipe.findById(recipeId);
       if (recipe && recipe.userId) {
         const notification = new Notification({
-          message: `${liker.name} liked your recipe`,
+          message: `${liker.name} indicó que le gusta tu cóctel`,
           time: new Date().toISOString(),
           type: "like",
           userId: recipe.userId,
           senderImage: liker.profileImage,
+          targetId: recipe._id,
+          route: `/recipe/${recipe._id}`,
         });
         await notification.save();
       }
@@ -92,7 +94,7 @@ exports.getNotFriends = async (req, res, next) => {
       },
       friends: { $nin: [userId] },
       requests: { $nin: [userId] },
-    });
+    }).populate("recipes");
 
     res.status(200).json({ message: "Not Friends List found", notFriends });
   } catch (err) {

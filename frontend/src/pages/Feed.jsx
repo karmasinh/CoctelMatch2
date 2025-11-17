@@ -36,19 +36,26 @@ export const Feed = () => {
       <Flex spacing={8} direction="row">
         <Box
           p={5}
-          w="26%"
+          w="22%"
           h="90vh"
           overflowY="scroll"
           className="scroll"
-          backgroundColor={"white"}
-          boxShadow="rgba(0, 0, 0, 0.05) 0px 0px 0px 1px"
+          bg={{ base: "white", md: "background" }}
+          borderWidth="1px"
+          borderColor="borderColor"
+          borderRadius="md"
         >
-          <Heading size={"md"} mb={"2rem"} textTransform="uppercase">
-            Personas que quieren conocerte
+          <Heading size={"md"} mb={"1rem"} textTransform="uppercase">
+            Nuevos amigos
           </Heading>
-          <Requests></Requests>
+          <NonFriends />
           <Divider my={5} />
-          <Heading size={"md"} mb="2rem" textTransform="uppercase">
+          <Heading size={"md"} mb={"1rem"} textTransform="uppercase">
+            Solicitudes de amistad
+          </Heading>
+          <Requests />
+          <Divider my={5} />
+          <Heading size={"md"} mb="1rem" textTransform="uppercase">
             Tus amigos
           </Heading>
           <InputGroup mb="10px">
@@ -57,26 +64,13 @@ export const Feed = () => {
             </InputLeftElement>
             <Input type="search" placeholder="Buscar" />
           </InputGroup>
-          {friends.map((friend, index) => {
-            return <FriendCard friend={friend} key={index} />;
-          })}
+          {friends.map((friend, index) => (
+            <FriendCard friend={friend} key={index} />
+          ))}
         </Box>
-        <Box flex="1">
+        <Box flex="1" maxW="min(80rem, 100%)" mx="auto">
           <AddCocktailModal mode="inline" />
           <UserFeed />
-        </Box>
-        <Box
-          p={5}
-          spacing="10px"
-          overflowY="scroll"
-          className="scroll"
-          // bg="white"
-          height="auto"
-        >
-          <Heading size={"md"} mb={"1rem"} textTransform="uppercase">
-            Buscar nuevos amigos
-          </Heading>
-          <NonFriends></NonFriends>
         </Box>
       </Flex>
     </DIV>

@@ -24,11 +24,13 @@ exports.addNewRecipe = async (req, res, next) => {
 
     // Create a notification for the owner of the recipe (the user who posted the recipe)
     const notification = new Notification({
-      message: `You created a new recipe post`,
+      message: `Has creado un nuevo cóctel`,
       time: new Date().toISOString(),
       type: "post",
       userId: req.userId,
       senderImage: user.profileImage,
+      targetId: newRecipe._id,
+      route: `/recipe/${newRecipe._id}`,
     });
 
     await notification.save();
@@ -49,7 +51,7 @@ exports.addNewRecipe = async (req, res, next) => {
 
 exports.getAllRecipe = async (req, res, next) => {
   try {
-    const { cuisine, impression, veg, flavors } = req.query;
+    const { cuisine, impression, veg, flavors, q } = req.query;
     const filter = {};
     
     if (cuisine) {
@@ -77,6 +79,16 @@ exports.getAllRecipe = async (req, res, next) => {
     }
 
     const sort = {};
+
+    if (q && typeof q === "string" && q.trim().length > 0) {
+      const regex = new RegExp(q.trim(), "i");
+      filter.$or = [
+        { title: regex },
+        { description: regex },
+        { tags: regex },
+        { ingredients: regex },
+      ];
+    }
 
     if (impression) {
       if (impression === "asc") {

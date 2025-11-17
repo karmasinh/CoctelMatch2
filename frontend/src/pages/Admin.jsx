@@ -43,6 +43,7 @@ import MostLikes from "../components/Charts/MostLikes";
 import VegNonVegChart from "../components/Charts/VegNonVeg";
 import Cuisines from "../components/Charts/Cusines";
 import { Reveal } from "../components/common/Reveal";
+import { buildImageUrl } from "../utils/media";
 
 const initialData = {
   tabOne: true,
@@ -349,7 +350,7 @@ const Admin = () => {
                         <Avatar
                           size="lg"
                           name={ele?.name}
-                          src={`${process.env.REACT_APP_API_URL}/${ele?.profileImage}`}
+                          src={buildImageUrl(ele?.profileImage)}
                         />
                         <Flex flexDir={"column"} textAlign={"left"}>
                           <Heading size={"md"} fontWeight={"bold"}>
@@ -390,7 +391,7 @@ const Admin = () => {
                                       <Avatar
                                         size="lg"
                                         name={e?.name}
-                                        src={`${process.env.REACT_APP_API_URL}/${e?.profileImage}`}
+                                        src={buildImageUrl(e?.profileImage)}
                                       />
                                       <Flex
                                         flexDir={"column"}
@@ -418,7 +419,7 @@ const Admin = () => {
                                 <Image
                                   height={"200px"}
                                   width={"200px"}
-                                  src={`${process.env.REACT_APP_API_URL}/${e?.images[0]}`}
+                                  src={buildImageUrl(e?.images?.[0])}
                                 />
                                 <Text fontWeight={"bold"}>{e?.title}</Text>
                               </Box>
@@ -457,7 +458,7 @@ const Admin = () => {
                             <Avatar
                               size="lg"
                               name={ele?.userId?.name}
-                              src={`${process.env.REACT_APP_API_URL}/${ele?.userId?.profileImage}`}
+                              src={buildImageUrl(ele?.userId?.profileImage)}
                             />
                             <Flex flexDir={"column"} textAlign={"left"}>
                               <Text fontWeight={"bold"}>

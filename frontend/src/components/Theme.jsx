@@ -1,14 +1,32 @@
 import { extendTheme } from "@chakra-ui/react";
 
 const theme = extendTheme({
+  config: {
+    initialColorMode: "light",
+    useSystemColorMode: true,
+  },
   fonts: {
     body: "Montserrat, sans-serif",
     heading: "Montserrat, sans-serif",
     caption: "Kaushan Script, sans-serif",
   },
+  semanticTokens: {
+    colors: {
+      text: {
+        default: "#030302",
+        _dark: "#f5f6f7",
+      },
+      background: {
+        default: "#ffffff",
+        _dark: "#1a202c",
+      },
+      borderColor: {
+        default: "gray.200",
+        _dark: "gray.700",
+      },
+    },
+  },
   colors: {
-    text: "#030302",
-    background: "#ffffff",
     primary: {
       50: "#fef9e7",
       100: "#fde3a7",
@@ -29,6 +47,8 @@ const theme = extendTheme({
       body: {
         width: "100vw",
         overflowX: "hidden",
+        bg: "background",
+        color: "text",
       },
     },
   },

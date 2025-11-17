@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Flex,
@@ -19,13 +19,17 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  MenuOptionGroup,
+  MenuItemOption,
 } from "@chakra-ui/react";
+import { useColorMode } from "@chakra-ui/react";
 import { HamburgerIcon, CloseIcon } from "@chakra-ui/icons";
 import { FaBell } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { logoutUser } from "../../redux/authReducer/actions";
 import { Notifications } from "./Notifications";
+import axios from "axios";
 
 export const Navbar = () => {
   const { isOpen, onToggle } = useDisclosure();
@@ -36,6 +40,45 @@ export const Navbar = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const address = useLocation();
+  const [settings, setSettings] = useState(null);
+  const base = process.env.REACT_APP_API_URL || "";
+  const { colorMode, toggleColorMode } = useColorMode();
+  const applyPalette = (palette) => {
+    try {
+      const root = document.documentElement;
+      if (palette === "cyan") {
+        root.style.setProperty("--chakra-colors-primary-500", "#06b6d4");
+        root.style.setProperty("--chakra-colors-primary-600", "#0ea5b7");
+        root.style.setProperty("--chakra-colors-accent", "#22d3ee");
+      } else {
+        root.style.setProperty("--chakra-colors-primary-500", "#fb8500");
+        root.style.setProperty("--chakra-colors-primary-600", "#e97300");
+        root.style.setProperty("--chakra-colors-accent", "#e89c45");
+      }
+      localStorage.setItem("theme_palette", palette);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await axios.get(`${base}/settings`);
+        setSettings(data?.settings || null);
+      } catch (_) {
+        setSettings(null);
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!loggedInUser) return;
+    const stored = localStorage.getItem("theme_preference");
+    const desired = stored || (loggedInUser.role === "admin" ? "dark" : "light");
+    if (colorMode !== desired) toggleColorMode();
+    const palette = localStorage.getItem("theme_palette") || "default";
+    applyPalette(palette);
+  }, [loggedInUser, colorMode]);
 
   const bgColor = useColorModeValue("white", "gray.800");
   const textColor = useColorModeValue("primary-500", "white");
@@ -96,17 +139,14 @@ export const Navbar = () => {
             </Text>
           </Text>
 
-          <Flex
-            display={{ base: "none", md: "flex" }}
-            ml={{ lg: 8, md: 4, base: 2 }}
-          >
-            <DesktopNav />
+          <Flex display={{ base: "none", md: "flex" }} ml={{ lg: 8, md: 4, base: 2 }}>
+            <DesktopNav settings={settings} />
           </Flex>
           {/* Usuario mostrado desde menú a la derecha (DesktopNav) */}
         </Flex>
       </Flex>
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav />
+        <MobileNav settings={settings} />
         <Stack
           flex={{ base: 1, md: 0 }}
           justify={"flex-start"}
@@ -168,9 +208,25 @@ export const Navbar = () => {
   );
 };
 
-const DesktopNav = () => {
+const DesktopNav = ({ settings }) => {
   const linkColor = useColorModeValue("text", "white");
   const linkHoverColor = useColorModeValue("primary.500", "teal.500");
+  const { colorMode, toggleColorMode } = useColorMode();
+  const applyPalette = (palette) => {
+    try {
+      const root = document.documentElement;
+      if (palette === "cyan") {
+        root.style.setProperty("--chakra-colors-primary-500", "#06b6d4");
+        root.style.setProperty("--chakra-colors-primary-600", "#0ea5b7");
+        root.style.setProperty("--chakra-colors-accent", "#22d3ee");
+      } else {
+        root.style.setProperty("--chakra-colors-primary-500", "#fb8500");
+        root.style.setProperty("--chakra-colors-primary-600", "#e97300");
+        root.style.setProperty("--chakra-colors-accent", "#e89c45");
+      }
+      localStorage.setItem("theme_palette", palette);
+    } catch (_) {}
+  };
   const isAuth = useSelector((store) => store.authReducer.isAuth);
   const loggedInUser = useSelector((store) => store.authReducer.loggedInUser);
   const token = useSelector((store) => store.authReducer.token);
@@ -186,123 +242,45 @@ const DesktopNav = () => {
   const logoutHandler = () => {
     dispatch(logoutUser(token, toast, navigate));
   };
+  const baseItems = [
+    { label: "Explorar", href: "/explore", visible: settings?.navbar?.showExplore !== false },
+    { label: "Social", href: "/feed", visible: true },
+    { label: "Acerca de", href: "/about", visible: settings?.navbar?.showAbout !== false },
+    { label: "Búsqueda", href: "/ingredients-search", visible: true },
+  ];
+
+  const adminItems = [
+    { label: "Administración", href: "/admin" },
+    { label: "Ingredientes", href: "/admin/ingredients" },
+    { label: "Usuarios", href: "/admin/users" },
+    { label: "Editor Home", href: "/admin/home-editor" },
+  ];
+
+  const roleItems = useMemo(() => {
+    if (!isAuth) return [];
+    if (loggedInUser?.role === "admin") {
+      if (settings?.navbar?.showAdmin === false) return [];
+      return adminItems;
+    }
+    if (loggedInUser?.role === "mixologist") return [{ label: "Añadir cóctel", href: "/user-recipes" }];
+    if (loggedInUser?.role === "user") return [{ label: "Mi feed", href: "/feed" }];
+    return [];
+  }, [isAuth, loggedInUser, settings]);
+
   return (
     <Flex gap="1rem" alignItems={"center"}>
       <Flex gap="1rem" alignItems={"center"}>
-        <Text
-          as={Link}
-          to="/explore"
-          color={linkColor}
-          _hover={{
-            textDecoration: "none",
-            color: linkHoverColor,
-          }}
-        >
-          Explorar
-        </Text>
-        <Text
-          as={Link}
-          to="/feed"
-          color={linkColor}
-          _hover={{
-            textDecoration: "none",
-            color: linkHoverColor,
-          }}
-        >
-          Novedades
-        </Text>
-        <Text
-          as={Link}
-          to="/about"
-          color={linkColor}
-          _hover={{ textDecoration: "none", color: linkHoverColor }}
-        >
-          Acerca de
-        </Text>
-        <Text
-          as={Link}
-          to="/ingredients-search"
-          color={linkColor}
-          _hover={{ textDecoration: "none", color: linkHoverColor }}
-        >
-          Búsqueda
-        </Text>
-        <Text
-          as={Link}
-          to="/account"
-          color={linkColor}
-          _hover={{
-            textDecoration: "none",
-            color: linkHoverColor,
-          }}
-        >
-          Cuenta
-        </Text>
-        {isAuth && (
-          <>
-            {/* Menú por rol */}
-            {loggedInUser?.role === "admin" && (
-              <>
-                <Text
-                  as={Link}
-                  to="/admin"
-                  color={linkColor}
-                  _hover={{ textDecoration: "none", color: linkHoverColor }}
-                >
-                  Administración
-                </Text>
-                <Text
-                  as={Link}
-                  to="/admin/ingredients"
-                  color={linkColor}
-                  _hover={{ textDecoration: "none", color: linkHoverColor }}
-                >
-                  Ingredientes
-                </Text>
-                <Text
-                  as={Link}
-                  to="/admin/users"
-                  color={linkColor}
-                  _hover={{ textDecoration: "none", color: linkHoverColor }}
-                >
-                  Usuarios
-                </Text>
-                <Text
-                  as={Link}
-                  to="/admin/home-editor"
-                  color={linkColor}
-                  _hover={{ textDecoration: "none", color: linkHoverColor }}
-                >
-                  Editor Home
-                </Text>
-              </>
-            )}
-            {loggedInUser?.role === "mixologist" && (
-              <>
-                <Text
-                  as={Link}
-                  to="/user-recipes"
-                  color={linkColor}
-                  _hover={{ textDecoration: "none", color: linkHoverColor }}
-                >
-                  Añadir cóctel
-                </Text>
-              </>
-            )}
-            {loggedInUser?.role === "user" && (
-              <>
-                <Text
-                  as={Link}
-                  to="/feed"
-                  color={linkColor}
-                  _hover={{ textDecoration: "none", color: linkHoverColor }}
-                >
-                  Mi feed
-                </Text>
-              </>
-            )}
-          </>
-        )}
+        {[...baseItems.filter((i) => i.visible), ...roleItems].map((item) => (
+          <Text
+            key={item.href}
+            as={Link}
+            to={item.href}
+            color={linkColor}
+            _hover={{ textDecoration: "none", color: linkHoverColor }}
+          >
+            {item.label}
+          </Text>
+        ))}
       </Flex>
       <Stack
         flex={{ base: 1, md: 0 }}
@@ -350,6 +328,15 @@ const DesktopNav = () => {
               </MenuButton>
               <MenuList>
                 <MenuItem as={Link} to="/account">Configuración de la cuenta</MenuItem>
+                {/* Selector de tema */}
+                <MenuOptionGroup title="Modo" type="radio" defaultValue={colorMode} onChange={(val) => { const desired = val === "dark" ? "dark" : "light"; if (colorMode !== desired) toggleColorMode(); localStorage.setItem("theme_preference", desired); }}>
+                  <MenuItemOption value="light">Claro</MenuItemOption>
+                  <MenuItemOption value="dark">Oscuro</MenuItemOption>
+                </MenuOptionGroup>
+                <MenuOptionGroup title="Paleta" type="radio" defaultValue={localStorage.getItem("theme_palette") || "default"} onChange={(val) => applyPalette(val)}>
+                  <MenuItemOption value="default">Naranja</MenuItemOption>
+                  <MenuItemOption value="cyan">Cyan</MenuItemOption>
+                </MenuOptionGroup>
                 <MenuItem onClick={logoutHandler}>Cerrar sesión</MenuItem>
               </MenuList>
             </Menu>
@@ -378,32 +365,35 @@ const DesktopNav = () => {
   );
 };
 
-const MobileNav = () => {
+const MobileNav = ({ settings }) => {
   const bgColor = useColorModeValue("white", "gray.800");
   const isAuth = useSelector((store) => store.authReducer.isAuth);
   const loggedInUser = useSelector((store) => store.authReducer.loggedInUser);
 
+  const baseItems = [
+    { label: "Explorar", href: "/explore", visible: settings?.navbar?.showExplore !== false },
+    { label: "Social", href: "/feed", visible: true },
+    { label: "Acerca de", href: "/about", visible: settings?.navbar?.showAbout !== false },
+    { label: "Búsqueda", href: "/ingredients-search", visible: true },
+  ];
+
+  const adminItems = [
+    { label: "Administración", href: "/admin" },
+    { label: "Ingredientes", href: "/admin/ingredients" },
+    { label: "Usuarios", href: "/admin/users" },
+    { label: "Editor Home", href: "/admin/home-editor" },
+  ];
+
+  const roleItems = [];
+  if (isAuth && loggedInUser?.role === "admin" && settings?.navbar?.showAdmin !== false) roleItems.push(...adminItems);
+  if (isAuth && loggedInUser?.role === "mixologist") roleItems.push({ label: "Añadir cóctel", href: "/user-recipes" });
+  if (isAuth && loggedInUser?.role === "user") roleItems.push({ label: "Mi feed", href: "/feed" });
+
   return (
     <Stack bg={bgColor} p={4} display={{ md: "none", base: "flex" }}>
-      <MobileNavItem label="Explorar" href={"/explore"} />
-      <MobileNavItem label="Novedades" href={"/feed"} />
-      <MobileNavItem label="Acerca de" href={"/about"} />
-      <MobileNavItem label="Búsqueda" href={"/ingredients-search"} />
-      <MobileNavItem label="Cuenta" href={"/account"} />
-      {isAuth && loggedInUser?.role === "admin" && (
-        <>
-          <MobileNavItem label="Administración" href={"/admin"} />
-          <MobileNavItem label="Ingredientes" href={"/admin/ingredients"} />
-          <MobileNavItem label="Usuarios" href={"/admin/users"} />
-          <MobileNavItem label="Editor Home" href={"/admin/home-editor"} />
-        </>
-      )}
-      {isAuth && loggedInUser?.role === "mixologist" && (
-        <MobileNavItem label="Añadir cóctel" href={"/user-recipes"} />
-      )}
-      {isAuth && loggedInUser?.role === "user" && (
-        <MobileNavItem label="Mi feed" href={"/feed"} />
-      )}
+      {[...baseItems.filter((i) => i.visible), ...roleItems].map((item) => (
+        <MobileNavItem key={item.href} label={item.label} href={item.href} />
+      ))}
     </Stack>
   );
 };

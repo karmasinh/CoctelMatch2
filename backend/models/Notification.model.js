@@ -11,6 +11,8 @@ const notificationSchema = new mongoose.Schema({
     required: "true",
   },
   senderImage: String,
+  targetId: { type: Schema.Types.ObjectId },
+  route: { type: String },
 });
 
 const Notification = mongoose.model("Notification", notificationSchema);

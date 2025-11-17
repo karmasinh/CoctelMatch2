@@ -1,6 +1,7 @@
 import { Box, Flex, Text, Image, HStack, Icon } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { useState } from "react";
+import { buildImageUrl } from "../../utils/media";
 
 export const Carousel = ({ images, height = "500px" }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -45,7 +46,7 @@ export const Carousel = ({ images, height = "500px" }) => {
                 {sid + 1} / {slidesCount}
               </Text>
               <Image
-                src={`${process.env.REACT_APP_API_URL}/${image}`}
+                src={buildImageUrl(image)}
                 fallbackSrc="/images/signupimage.jpg"
                 alt={`carousel image ${sid + 1}`}
                 boxSize="full"

@@ -24,58 +24,51 @@ import { ChatIcon } from "@chakra-ui/icons";
 import React, { useEffect, useRef, useState } from "react";
 import { Avatar, AvatarBadge, AvatarGroup } from "@chakra-ui/react";
 import { io } from "socket.io-client";
+import { Link } from "react-router-dom";
 
 import { AiOutlineUser } from "react-icons/ai";
 import { styled } from "styled-components";
 import { useSelector } from "react-redux";
 import axios from "axios";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+function playSound(freq) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(freq, ctx.currentTime);
+    g.gain.setValueAtTime(0.05, ctx.currentTime);
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    setTimeout(() => o.stop(), 150);
+  } catch (_) {}
+}
 const MiniCard_Friends = ({ userId, friend, addRequestHandler }) => {
   return (
-    <Card
-      maxW="md"
-      mb="1rem"
-      borderRadius="lg"
-      overflow="hidden"
-      boxShadow={"md"}
-      p="1rem"
-    >
-      <Flex
-        direction={{ base: "column", sm: "row" }}
-        gap="1rem"
-        alignItems="center"
-      >
+    <Card w="100%" mb="1rem" borderRadius="lg" boxShadow="md" p="1rem">
+      <Flex direction={{ base: "column", sm: "row" }} gap="1rem" alignItems="flex-start">
         <Avatar size="md" name={friend.name} src={friend.profileImage} />
-        <Center height="50px">
-          <Divider orientation="vertical" />
-        </Center>
-        <CardBody flexGrow={1} p={0}>
-          <Flex
-            mb={2}
-            justifyContent="space-between"
-            alignItems="center"
-            w="100%"
-          >
-            <Heading size="sm" fontWeight="500">
-              {friend.name}
-            </Heading>
+        <CardBody p={0} flexGrow={1}>
+          <Heading size="sm" fontWeight="600" mb={1}>
+            {friend.name}
+          </Heading>
+          <Text fontSize="sm" mb={2}>
+            {friend.bio || ""}
+          </Text>
+          <HStack justify="space-between" align="center">
             {!friend.requests.includes(userId) ? (
-              <Button
-                variant="outline"
-                size="sm"
-                colorScheme="primary"
-                onClick={() => addRequestHandler(friend._id, friend.requests)}
-              >
-                Add Friend
+              <Button variant="solid" size="sm" onClick={() => addRequestHandler(friend._id, friend.requests)}>
+                Agregar amigo
               </Button>
             ) : (
-              <Button colorScheme="primary" size="sm" disabled>
-                Friend Request Sent
+              <Button variant="outline" size="sm" disabled>
+                Solicitud enviada
               </Button>
             )}
-          </Flex>
-          <Text noOfLines={2} isTruncated>
-            {friend.bio.slice(0, 40) + "..."}
-          </Text>
+            <Button size="sm" variant="outline" as={Link} to={`/user/${friend._id}`}>Ver perfil</Button>
+          </HStack>
         </CardBody>
       </Flex>
     </Card>
@@ -100,19 +93,19 @@ const MiniCard_Request = ({
           <Flex gap={2} justifyContent="flex-end" alignItems="center">
             {" "}
             <Button
-              colorScheme="primary.500"
+              colorScheme="primary"
               size="xs"
               onClick={() => acceptRequestHandler(friend._id)}
             >
-              Accept
+              Aceptar
             </Button>
             <Button
               variant="outline"
-              colorScheme="primary"
+              colorScheme="gray"
               size="xs"
               onClick={() => rejectRequestHandler(friend._id)}
             >
-              Reject
+              Rechazar
             </Button>
           </Flex>
         </Flex>
@@ -144,14 +137,14 @@ const FriendCard = ({ friend }) => {
   const chatContainerRef = useRef();
   const lastMessageRef = useRef();
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const now = new Date();
     const options = {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     };
-    const formattedTime = now.toLocaleDateString("en-US", options);
+    const formattedTime = now.toLocaleTimeString("es-ES", options);
     if (message === "") {
       return;
     }
@@ -159,19 +152,17 @@ const FriendCard = ({ friend }) => {
       sender: user._id,
       receiver: friend._id,
       message: message,
+      type: "text",
       time: formattedTime,
     };
 
-    axios
-      .post(`${process.env.REACT_APP_API_URL}/chat/addmessage`, data)
-      .then((res) => {
-        console.log(res.data);
-        if (socket) socket.emit("message");
-        setRefresh(!refresh);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    try {
+      await axios.post(`${API}/chat/addmessage`, data);
+      if (socket) socket.emit("message");
+      setRefresh(!refresh);
+      playSound(660);
+    } catch (err) {
+    }
     setMessage("");
   };
 
@@ -183,38 +174,32 @@ const FriendCard = ({ friend }) => {
 
   useEffect(() => {
     axios
-      .get(
-        `${process.env.REACT_APP_API_URL}/chat/getmessage/${user._id}/${friend._id}`
-      )
+      .get(`${API}/chat/getmessage/${user._id}/${friend._id}`)
       .then((res) => {
-        console.log(res.data);
         setChat(res.data);
       })
-      .catch((err) => {
-        console.log(err);
-      });
+      .catch(() => {});
   }, [refresh]);
 
   useEffect(() => {
     if (!socket) return;
-    const handler = (data) => {
-      console.log("Refresh message");
+    const handler = () => {
       axios
-        .get(
-          `${process.env.REACT_APP_API_URL}/chat/getmessage/${user._id}/${friend._id}`
-        )
+        .get(`${API}/chat/getmessage/${user._id}/${friend._id}`)
         .then((res) => {
           setChat(res.data);
+          playSound(440);
         })
-        .catch((err) => {
-          console.log(err);
-        });
+        .catch(() => {});
     };
-    socket.on("sendMessage", handler);
+    if (isOpen) {
+      try { socket.connect(); } catch (_) {}
+      socket.on("sendMessage", handler);
+    }
     return () => {
-      socket.off("sendMessage", handler);
+      try { socket.off("sendMessage", handler); socket.disconnect(); } catch (_) {}
     };
-  }, [socket, user?._id, friend?._id]);
+  }, [socket, user?._id, friend?._id, isOpen]);
 
   console.log(chat, "chat");
 
@@ -235,7 +220,10 @@ const FriendCard = ({ friend }) => {
             >
               {friend.name}
             </Heading>
-            <ChatIcon cursor={"pointer"} onClick={onOpen} />
+            <HStack>
+              <Button size="xs" variant="outline" onClick={onOpen}>Chatear</Button>
+              <ChatIcon cursor={"pointer"} onClick={onOpen} />
+            </HStack>
           </Flex>
         </Flex>
       </Card>
@@ -272,8 +260,18 @@ const FriendCard = ({ friend }) => {
                           </div>
                           <div className="msg-info-time">{ele.time}</div>
                         </div>
-
-                        <div className="msg-text">{ele.message}</div>
+                        {ele.type === "text" && (
+                          <div className="msg-text">{ele.message}</div>
+                        )}
+                        {ele.type === "image" && ele.attachments?.[0] && (
+                          <img src={`${process.env.REACT_APP_API_URL}/${ele.attachments[0]}`} alt="imagen" style={{ maxWidth: "240px", borderRadius: "8px" }} />
+                        )}
+                        {ele.type === "video" && ele.attachments?.[0] && (
+                          <video src={`${process.env.REACT_APP_API_URL}/${ele.attachments[0]}`} controls style={{ maxWidth: "240px", borderRadius: "8px" }} />
+                        )}
+                        {ele.type === "sticker" && ele.attachments?.[0] && (
+                          <img src={`${process.env.REACT_APP_API_URL}/${ele.attachments[0]}`} alt="sticker" style={{ maxWidth: "120px" }} />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -287,16 +285,47 @@ const FriendCard = ({ friend }) => {
                 value={message}
                 required={true}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Enter your message"
+                placeholder="Escribe tu mensaje"
                 width="100%"
                 mb="1rem"
               ></Textarea>
+              <HStack justify="space-between" mb="0.5rem">
+                <input type="file" accept="image/*,video/*" onChange={async (e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length === 0) return;
+                  const form = new FormData();
+                  files.forEach((f) => form.append("file", f));
+                  try {
+                    const res = await axios.post(`${API}/upload`, form, { headers: { "Content-Type": "multipart/form-data" } });
+                    const paths = res.data?.files || [];
+                    const type = files[0].type.startsWith("video") ? "video" : "image";
+                    const now = new Date();
+                    const formattedTime = now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                    await axios.post(`${API}/chat/addmessage`, {
+                      sender: user._id,
+                      receiver: friend._id,
+                      type,
+                      attachments: paths,
+                      time: formattedTime,
+                    });
+                    if (socket) socket.emit("message");
+                    setRefresh((r) => !r);
+                    playSound(720);
+                  } catch (_) {}
+                  e.target.value = "";
+                }} />
+                <HStack>
+                  {["🍸","🍹","🥂","🍷","🍻","🍒","🍋"].map((emo) => (
+                    <Button key={emo} size="xs" variant="ghost" onClick={() => setMessage((m) => m + " " + emo)}>{emo}</Button>
+                  ))}
+                </HStack>
+              </HStack>
               <Button
                 onClick={() => sendMessage()}
                 variant="solid"
                 alignSelf={"flex-end"}
               >
-                Send message
+                Enviar mensaje
               </Button>
             </Flex>
           </ModalFooter>

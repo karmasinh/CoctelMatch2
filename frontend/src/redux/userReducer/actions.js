@@ -24,27 +24,33 @@ import {
 } from "../authReducer/actionTypes";
 import axios from "axios";
 import { getUserRecipes } from "../authReducer/actions";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 export const updateUser =
   (id, userObj, token, toast, type, id2) => async (dispatch) => {
     try {
       dispatch({ type: POST_REQUEST_LOADING });
+      const base = process.env.REACT_APP_API_URL || "";
+      const { data: csrf } = await axios.get(`${base}/csrf-token`, { withCredentials: true });
+      const csrfToken = csrf?.csrfToken || "";
       // Make a patch request using Axios to update the user
       const response = await axios.patch(
-        `${process.env.REACT_APP_API_URL}/users/update/${id}`,
+        `${API}/users/update/${id}`,
         userObj,
         {
           headers: {
             Authorization: `Bearer ${token}`,
             "X-Action-Type": type,
+            "X-CSRF-Token": csrfToken,
           },
+          withCredentials: true,
         }
       );
       console.log(response.data);
       if (type == "request") {
         dispatch({ type: POST_REQUEST_SUCCESS, payload: id });
         toast({
-          title: "Friend Request Sent",
+          title: "Solicitud de amistad enviada",
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -52,7 +58,7 @@ export const updateUser =
       } else if (type == "accept") {
         dispatch({ type: POST_ACCEPTREQUEST_SUCCESS, payload: id2 });
         toast({
-          title: "Friend Request Accepted",
+          title: "Solicitud aceptada",
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -60,14 +66,14 @@ export const updateUser =
       } else if (type === "reject") {
         dispatch({ type: POST_REJECTREQUEST_SUCCESS, payload: id2 });
         toast({
-          title: "Friend Request Rejected",
+          title: "Solicitud rechazada",
           status: "success",
           duration: 3000,
           isClosable: true,
         });
       } else if (type === "like") {
         toast({
-          title: "Post Liked",
+          title: "Has indicado que te gusta",
           status: "success",
           duration: 500,
           isClosable: true,
@@ -75,7 +81,7 @@ export const updateUser =
         dispatch(getUserRecipes(id, token));
       } else if (type === "dislike") {
         toast({
-          title: "Post Liked",
+          title: "Has quitado me gusta",
           status: "success",
           duration: 500,
           isClosable: true,
@@ -83,14 +89,14 @@ export const updateUser =
         dispatch(getUserRecipes(id, token));
       } else if (type === "save") {
         toast({
-          title: "Recipe Saved",
+          title: "Receta guardada",
           status: "success",
           duration: 500,
           isClosable: true,
         });
       } else if (type === "unsave") {
         toast({
-          title: "Recipe Unsaved",
+          title: "Receta desguardada",
           status: "success",
           duration: 500,
           isClosable: true,
@@ -109,13 +115,18 @@ export const addToFriend = (id, userId, token) => async (dispatch) => {
   try {
     dispatch({ type: POST_REQUEST_LOADING });
     // Make a patch request using Axios to update the user
+    const base = process.env.REACT_APP_API_URL || "";
+    const { data: csrf } = await axios.get(`${base}/csrf-token`, { withCredentials: true });
+    const csrfToken = csrf?.csrfToken || "";
     const response = await axios.patch(
-      `${process.env.REACT_APP_API_URL}/users/addFriend/${id}`,
+      `${API}/users/addFriend/${id}`,
       userId,
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "X-CSRF-Token": csrfToken,
         },
+        withCredentials: true,
       }
     );
     // console.log(response);
@@ -132,14 +143,14 @@ export const getAllNonFriends = (token) => async (dispatch) => {
   };
   try {
     const response = await axios.get(
-      `${process.env.REACT_APP_API_URL}/users/notfriends`,
+      `${API}/users/notfriends`,
       config
     );
     // console.log(response.data);
 
     const users = response.data.notFriends;
     users.forEach((user) => {
-      user.profileImage = `${process.env.REACT_APP_API_URL}/${user.profileImage}`;
+      user.profileImage = `${API}/${user.profileImage}`;
     });
     // console.log(users);
     dispatch({ type: GET_NONFRIEND_SUCCESS, payload: users });
@@ -158,14 +169,14 @@ export const getRequestsUsers = (token) => async (dispatch) => {
   };
   try {
     const response = await axios.get(
-      `${process.env.REACT_APP_API_URL}/users/requests`,
+      `${API}/users/requests`,
       config
     );
     // console.log(response.data);
 
     const users = response.data.requestUsers;
     users.forEach((user) => {
-      user.profileImage = `${process.env.REACT_APP_API_URL}/${user.profileImage}`;
+      user.profileImage = `${API}/${user.profileImage}`;
     });
     // console.log(users);
     dispatch({ type: GET_REQUESTSUSER_SUCCESS, payload: users });
@@ -184,14 +195,14 @@ export const getFriends = (token) => async (dispatch) => {
   };
   try {
     const response = await axios.get(
-      `${process.env.REACT_APP_API_URL}/users/friends`,
+      `${API}/users/friends`,
       config
     );
     // console.log(response.data);
 
     const users = response.data.friends;
     users.forEach((user) => {
-      user.profileImage = `${process.env.REACT_APP_API_URL}/${user.profileImage}`;
+      user.profileImage = `${API}/${user.profileImage}`;
     });
     // console.log(users);
     dispatch({ type: GET_FRIENDS_SUCCESS, payload: users });

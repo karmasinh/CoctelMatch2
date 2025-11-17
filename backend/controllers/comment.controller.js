@@ -25,11 +25,13 @@ exports.addNewComment = async (req, res, next) => {
     const recipe = await Recipe.findById(recipeId);
     if (recipe && recipe.userId) {
       const notification = new Notification({
-        message: `${commenter.name} commented on your recipe`,
+        message: `${commenter.name} comentó en tu cóctel`,
         time: new Date().toISOString(),
         type: "comment",
         userId: recipe.userId,
         senderImage: commenter.profileImage,
+        targetId: recipe._id,
+        route: `/recipe/${recipe._id}`,
       });
       await notification.save();
     }

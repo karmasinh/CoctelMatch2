@@ -8,7 +8,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 
-export const Homecard = ({ image, name, key }) => {
+export const Homecard = ({ image, name, metrics }) => {
   return (
     <Card
       // w="350px"
@@ -22,9 +22,13 @@ export const Homecard = ({ image, name, key }) => {
         <Heading mb={2} size="sm" textTransform="uppercase">
           {name}
         </Heading>
-        <Text>{Math.floor(Math.random() * (30 - 15 + 1)) + 15} Minutos</Text>
-        <Text>{Math.floor(Math.random() * (3 - 1 + 1)) + 1} Vasos</Text>
-        <Text>{Math.floor(Math.random() * (40 - 0 + 1))}% ABV</Text>
+        {metrics && (
+          <>
+            <Text>{metrics.minutes} Minutos</Text>
+            <Text>{metrics.servings} Vasos</Text>
+            <Text>{metrics.abv}% ABV</Text>
+          </>
+        )}
       </CardBody>
       <Box width={{ lg: "50%", md: "70%", base: "100%" }}>
         <Image

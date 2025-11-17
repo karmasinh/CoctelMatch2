@@ -26,6 +26,8 @@ import { useSelector } from "react-redux";
 import FeedCard from "../components/Feed/FeedCard";
 import { Carousel } from "../components/Feed/SingleRecipeCarousel";
 import { buildImageUrl } from "../utils/media";
+import { Reveal } from "../components/common/Reveal";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const defaultFlavors = [
   "Afrutado",
@@ -63,7 +65,7 @@ const IngredientsSearch = () => {
     const handler = setTimeout(async () => {
       try {
         const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/ingredients`, { params: { search: q }, headers });
+        const res = await axios.get(`${API}/ingredients`, { params: { search: q }, headers });
         setSuggestions(res.data?.ingredients || []);
       } catch (err) {
         // No bloquear por error
@@ -77,7 +79,7 @@ const IngredientsSearch = () => {
     setLoading(true);
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/recipe/getAllRecipe`, { headers });
+      const res = await axios.get(`${API}/recipe/getAllRecipe`, { headers });
       setRecipes(res.data || []);
     } catch (err) {
       toast({ title: "No se pudieron cargar recetas", status: "error" });
@@ -164,13 +166,15 @@ const IngredientsSearch = () => {
 
   return (
     <Box>
-      <Box h="35vh" position="relative">
+      <Reveal>
+      <Box h="40vh" position="relative">
         <Image src="/images/loginImage.jpg" alt="Ingredientes" w="100%" h="100%" objectFit="cover" />
         <VStack position="absolute" inset={0} align="center" justify="center" px={6}>
-          <Heading color="white" textShadow="1px 1px 2px black">Buscar por ingredientes</Heading>
-          <Text color="white">Especifica tus ingredientes y preferencias para encontrar cócteles.</Text>
+          <Heading color="white" textShadow="2px 2px 4px #000">Busca cócteles por ingredientes</Heading>
+          <Text color="white">Especifica ingredientes y sabores para encontrar mezclas ideales.</Text>
         </VStack>
       </Box>
+      </Reveal>
 
       <Box width="min(80rem,100%)" mx="auto" px={4} py={6}>
         <Heading size="md" mb={3}>Ingredientes</Heading>
@@ -210,23 +214,39 @@ const IngredientsSearch = () => {
 
         <Flex justify="space-between" align="center" my={4}>
           <Text color="gray.600">Resultados: {filteredRecipes.length}</Text>
-          <Button onClick={startGuided} isDisabled={selectedList.length === 0}>Comenzar guía ({selectedList.length})</Button>
+          <Button onClick={startGuided} isDisabled={selectedList.length === 0}>Preparación guiada ({selectedList.length})</Button>
         </Flex>
 
-        <Box>
-          {loading && <Text>Cargando…</Text>}
-          {!loading && filteredRecipes.map((r) => (
-            <Box key={r._id} mb={6}>
-              <FeedCard recipe={r} />
-              <HStack mt={2}>
-                <Button size="sm" onClick={() => addToList(r)}>Agregar a la lista</Button>
-                {selectedList.find((x) => x._id === r._id) && (
-                  <Button size="sm" variant="outline" onClick={() => removeFromList(r._id)}>Quitar</Button>
-                )}
-              </HStack>
-            </Box>
-          ))}
-        </Box>
+        <Flex gap={6} align="start" wrap="wrap">
+          <Box flex="2 1 60%">
+            {loading && <Text>Cargando…</Text>}
+            {!loading && filteredRecipes.map((r, idx) => (
+              <Reveal key={r._id} delay={0.1 + (idx%6)*0.05}>
+                <Box mb={6}>
+                  <FeedCard recipe={r} />
+                  <HStack mt={2}>
+                    <Button size="sm" onClick={() => addToList(r)}>Agregar a la lista</Button>
+                    {selectedList.find((x) => x._id === r._id) && (
+                      <Button size="sm" variant="outline" onClick={() => removeFromList(r._id)}>Quitar</Button>
+                    )}
+                  </HStack>
+                </Box>
+              </Reveal>
+            ))}
+          </Box>
+          <Box flex="1 1 35%" position="sticky" top="1rem">
+            <Heading size="sm" mb={2}>Lista para preparar</Heading>
+            {selectedList.length === 0 && <Text color="gray.600">Añade recetas para la guía</Text>}
+            <VStack align="stretch" spacing={3}>
+              {selectedList.map((r) => (
+                <Flex key={r._id} justify="space-between" align="center" p={2} borderWidth="1px" borderRadius="md">
+                  <Text noOfLines={1}>{r.title}</Text>
+                  <Button size="xs" variant="outline" onClick={() => removeFromList(r._id)}>Quitar</Button>
+                </Flex>
+              ))}
+            </VStack>
+          </Box>
+        </Flex>
       </Box>
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -270,7 +290,7 @@ const IngredientsSearch = () => {
                   }} width="auto">
                     {[2,3,4,5].map((m) => (<option key={m} value={m}>{m} min</option>))}
                   </Select>
-                  <Text>Tiempo restante: {Math.max(remaining, 0)}s</Text>
+                  <Text>Tiempo restante: {`${String(Math.floor(Math.max(remaining,0)/60)).padStart(2,"0")}:${String(Math.max(remaining,0)%60).padStart(2,"0")}`}</Text>
                   <Button size="sm" onClick={() => setPaused((p) => !p)}>{paused ? "Reanudar" : "Pausar"}</Button>
                   <Button size="sm" variant="outline" onClick={() => setRemaining(minutes * 60)}>Reiniciar</Button>
                 </HStack>

@@ -22,7 +22,9 @@ import { RecipeCard } from "../components/home/RecipeCard";
 import ImageGrid from "../components/home/ImageGrid";
 import { Reveal } from "../components/common/Reveal";
 import { useNavigate } from "react-router-dom";
-const recipes = [
+import { Helmet } from "react-helmet-async";
+import DOMPurify from "dompurify";
+const recipesStatic = [
   { name: "Mojito clásico", image: "/images/signupimage.jpg" },
   { name: "Negroni", image: "/images/loginImage.jpg" },
   { name: "Margarita de fresa", image: "/images/signupimage.jpg" },
@@ -52,6 +54,9 @@ export const Home = () => {
   const [screenSize, setScreenSize] = useState(getScreenSize());
   const [popularRecipes, setPopularRecipes] = useState([]);
   const [loadingPopular, setLoadingPopular] = useState(false);
+  const [allRecipes, setAllRecipes] = useState([]);
+  const [personalizedTop, setPersonalizedTop] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   function getScreenSize() {
     return window.innerWidth > 768
@@ -73,13 +78,15 @@ export const Home = () => {
     };
   }, []);
 
-  // Cargar cócteles populares desde la API (orden aproximado por likes)
+  // Cargar cócteles desde la API
   useEffect(() => {
     const loadPopular = async () => {
       try {
         setLoadingPopular(true);
         const base = process.env.REACT_APP_API_URL || "";
-        const url = `${base}/recipe?impression=desc`;
+        const { data: settingsData } = await axios.get(`${base}/settings`);
+        setSettings(settingsData?.settings || null);
+        const url = `${base}/recipe/getAllRecipe?impression=desc`;
         const { data } = await axios.get(url);
         const sorted = Array.isArray(data)
           ? [...data].sort((a, b) => (b?.likes?.length || 0) - (a?.likes?.length || 0))
@@ -95,8 +102,10 @@ export const Home = () => {
           };
         });
         setPopularRecipes(items.length > 0 ? items : []);
+        setAllRecipes(Array.isArray(data) ? data : []);
       } catch (err) {
         setPopularRecipes([]);
+        setAllRecipes([]);
       } finally {
         setLoadingPopular(false);
       }
@@ -104,22 +113,118 @@ export const Home = () => {
     loadPopular();
   }, []);
 
+  // Algoritmo de ranking personalizado por usuario
+  useEffect(() => {
+    if (!user || allRecipes.length === 0) {
+      setPersonalizedTop([]);
+      return;
+    }
+    try {
+      const liked = new Set(user?.likedRecipes || []);
+      const saved = new Set(user?.savedRecipes || []);
+
+      const weights = {
+        tags: new Map(),
+        ingredients: new Map(),
+        flavors: new Map(),
+        cuisine: new Map(),
+      };
+
+      const bump = (map, key, by) => {
+        if (!key) return;
+        map.set(key, (map.get(key) || 0) + by);
+      };
+
+      // Construir vector de intereses
+      for (const r of allRecipes) {
+        const id = r?._id;
+        const likedByUser = liked.has(id);
+        const savedByUser = saved.has(id);
+        if (!likedByUser && !savedByUser) continue;
+        const by = likedByUser ? 3 : 0;
+        const bySaved = savedByUser ? 2 : 0;
+        const inc = by + bySaved;
+        (r?.tags || []).forEach((t) => bump(weights.tags, t, inc));
+        (r?.ingredients || []).forEach((t) => bump(weights.ingredients, t, inc));
+        (r?.flavors || []).forEach((t) => bump(weights.flavors, t, inc));
+        (r?.cuisine || []).forEach((t) => bump(weights.cuisine, t, inc));
+      }
+
+      const scoreFor = (r) => {
+        let s = 0;
+        (r?.tags || []).forEach((t) => (s += (weights.tags.get(t) || 0)));
+        (r?.ingredients || []).forEach((t) => (s += (weights.ingredients.get(t) || 0)));
+        (r?.flavors || []).forEach((t) => (s += (weights.flavors.get(t) || 0)));
+        (r?.cuisine || []).forEach((t) => (s += (weights.cuisine.get(t) || 0)));
+        // Popularidad
+        s += ((r?.likes?.length || 0) * 0.6) + ((r?.comments?.length || 0) * 0.4);
+        // Rating si existe
+        const ratingVal = r?.rating?.value || 0;
+        s += ratingVal * 1.2;
+        return s;
+      };
+
+      const sorted = [...allRecipes]
+        .map((r) => ({ r, s: scoreFor(r) }))
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 6)
+        .map(({ r }) => {
+          const first = (r?.images || [])[0] || "";
+          const imageUrl = first ? `${process.env.REACT_APP_API_URL || ""}/${first}` : undefined;
+          // Derivar métricas
+          const minutes = (() => {
+            const t = r?.time || "";
+            const m = parseInt(String(t).replace(/\D/g, ""), 10);
+            return Number.isFinite(m) ? m : 20;
+          })();
+          const servings = Math.max(1, Math.floor(((r?.ingredients || []).length || 4) / 4));
+          const abv = Math.min(40, Math.floor(((r?.ingredients || []).length || 4) * 2));
+          return {
+            id: r?._id,
+            title: r?.title || "Cóctel",
+            imageUrl,
+            metrics: { minutes, servings, abv },
+          };
+        });
+
+      setPersonalizedTop(sorted);
+    } catch (_) {
+      setPersonalizedTop([]);
+    }
+  }, [user, allRecipes]);
+
   const getRecipesToDisplay = () => {
-    const recipesToShow = {
-      lg: 6,
-      md: 2,
-      base: 1,
-    };
-    console.log(screenSize);
-    return recipes.slice(0, recipesToShow[screenSize]);
+    const recipesToShow = { lg: 6, md: 2, base: 1 };
+    const src = personalizedTop.length > 0 ? personalizedTop : recipesStatic.map((r) => ({ title: r.name, imageUrl: r.image, metrics: { minutes: 20, servings: 1, abv: 0 } }));
+    return src.slice(0, recipesToShow[screenSize]);
   };
 
   return (
     <DIV>
+      <Helmet>
+        <title>CocktailMatch — Cócteles y recomendaciones personalizadas</title>
+        <meta name="description" content="Descubre cócteles populares y recomendaciones basadas en tus gustos e interacciones." />
+        <meta property="og:title" content="CocktailMatch" />
+        <meta property="og:description" content="Explora y guarda tus cócteles favoritos, con recomendaciones inteligentes." />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'CocktailMatch',
+            url: window.location.origin,
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: `${window.location.origin}/ingredients-search?search={query}`,
+              'query-input': 'required name=query'
+            }
+          })}
+        </script>
+      </Helmet>
       <Reveal>
         <Box className="cover">
           <img
-            src="/images/loginImage.jpg"
+            src={(settings?.home?.bannerImage && `${process.env.REACT_APP_API_URL || ""}/${settings.home.bannerImage}`) || "/images/loginImage.jpg"}
             alt="Hero Background"
             onError={(e) => {
               e.currentTarget.src = "/images/signupimage.jpg";
@@ -128,19 +233,18 @@ export const Home = () => {
           <div className="hero-content" style={{ paddingInline: "1rem" }}>
             <Heading
               as="h1"
-              fontSize={{ lg: "3rem", md: "2rem", base: "1.5rem" }}
+              fontSize={{ lg: settings?.home?.heroTitleSize || "3rem", md: "2rem", base: "1.5rem" }}
               fontWeight={{ lg: "800", md: "700", base: "600" }}
               textTransform="uppercase"
               textAlign="center"
               noOfLines={2}
               mb="1rem"
-              textShadow="3px 3px 4px white"
+              color={settings?.home?.heroTitleColor || undefined}
             >
-              Cócteles increíbles <br />
-              y la mezcla perfecta.
+              <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(settings?.home?.heroTitle || "Cócteles increíbles <br /> y la mezcla perfecta.") }} />
             </Heading>
-            <Text textAlign="center" mb="2rem">
-              Explora miles de cócteles irresistibles
+            <Text textAlign="center" mb="2rem" color={settings?.home?.heroSubtitleColor || undefined} fontSize={settings?.home?.heroSubtitleSize || undefined}>
+              {settings?.home?.heroSubtitle || "Explora miles de cócteles irresistibles"}
             </Text>
             <Button onClick={() => navigate("/explore")}>VER MÁS CÓCTELES</Button>
             <Grid
@@ -159,7 +263,7 @@ export const Home = () => {
               {getRecipesToDisplay().map((el, i) => {
                 return (
                   <Reveal key={i} delay={1 + (i + 1) * 0.25}>
-                    <Homecard {...el} />
+                    <Homecard image={el.imageUrl} name={el.title} metrics={el.metrics} />
                   </Reveal>
                 );
               })}
@@ -208,14 +312,10 @@ export const Home = () => {
             mx="auto"
             size={{ lg: "xl", md: "lg", base: "md" }}
           >
-            {" "}
-            CÓCTELES MÁS POPULARES{" "}
+            {settings?.home?.popularTitle || "CÓCTELES MÁS POPULARES"}
           </Heading>
           <Text mb={"2rem"}>
-            {" "}
-            Descubre las mezclas favoritas de la comunidad y prueba nuevas
-            recetas de coctelería. <br />
-            Inspírate y crea tu próxima bebida estrella.{" "}
+            {settings?.home?.popularSubtitle || "Descubre las mezclas favoritas de la comunidad y prueba nuevas recetas de coctelería. Inspírate y crea tu próxima bebida estrella."}
           </Text>
           <Button mb={"4rem"} onClick={() => navigate("/explore")}>
             Explorar más

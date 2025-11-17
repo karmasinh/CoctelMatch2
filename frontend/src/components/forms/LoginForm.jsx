@@ -43,26 +43,26 @@ export const LoginForm = () => {
       <Box></Box>
       <Box>
         <Heading size="2xl" textTransform={"uppercase"} mb={"2rem"}>
-          Login
+          Iniciar sesión
         </Heading>
         <form onSubmit={handleSubmit}>
           <Stack spacing={4}>
             <FormControl>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Correo electrónico</FormLabel>
               <Input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Introduce tu correo"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </FormControl>
 
             <FormControl>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Contraseña</FormLabel>
               <InputGroup>
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder="Introduce tu contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -79,8 +79,8 @@ export const LoginForm = () => {
               </InputGroup>
             </FormControl>
 
-            <Button type="submit" colorScheme="blue" width="min-content">
-              Login
+            <Button type="submit" colorScheme="primary" width="min-content">
+              Entrar
             </Button>
           </Stack>
         </form>

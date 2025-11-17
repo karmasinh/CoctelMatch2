@@ -47,7 +47,7 @@ export const RecipeCard = ({ img, title, recipeId, likesCount }) => {
         {typeof likesCount === "number" && (
           <Center mb={2}>
             <HStack spacing={2}>
-              <Tag size="sm" colorScheme="pink">{likesCount} likes</Tag>
+              <Tag size="sm" colorScheme="pink">{likesCount} me gusta</Tag>
             </HStack>
           </Center>
         )}

@@ -15,8 +15,14 @@ const chatSchema = mongoose.Schema(
       },
     message : {
       type  : String,
-      required: true
+      default: ""
     },
+    type: {
+      type: String,
+      enum: ["text","image","video","sticker"],
+      default: "text"
+    },
+    attachments: [String],
     time : String
   },
   {

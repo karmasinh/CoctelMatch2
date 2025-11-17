@@ -32,6 +32,7 @@ import { updateUser } from "../../redux/userReducer/actions";
 import axios from "axios";
 import { getFeed } from "../../redux/recipeReducer/actions";
 import { useNavigate } from "react-router-dom";
+import { buildImageUrl } from "../../utils/media";
 
 export default function FeedCard({ recipe }) {
   const toast = useToast();
@@ -172,9 +173,9 @@ export default function FeedCard({ recipe }) {
         }
       );
       toast({
-        title: "Comment Added Successfully",
+        title: "Comentario añadido",
         status: "success",
-        duration: 1000,
+        duration: 1200,
         isClosable: true,
       });
       setComments([...comments, response.data.comment]);
@@ -183,9 +184,9 @@ export default function FeedCard({ recipe }) {
     } catch (error) {
       // Handle errors and display a toast message
       toast({
-        title: "Couldn't add comment",
+        title: "No se pudo añadir el comentario",
         status: "error",
-        duration: 1000,
+        duration: 1500,
         isClosable: true,
       });
     }
@@ -214,9 +215,9 @@ export default function FeedCard({ recipe }) {
         return comment;
       });
       toast({
-        title: "Comment Updated Successfully",
+        title: "Comentario actualizado",
         status: "success",
-        duration: 1000,
+        duration: 1200,
         isClosable: true,
       });
       setComments(updatedComments);
@@ -226,9 +227,9 @@ export default function FeedCard({ recipe }) {
     } catch (error) {
       // Handle errors and display a toast message
       toast({
-        title: "Couldn't update comment",
+        title: "No se pudo actualizar el comentario",
         status: "error",
-        duration: 1000,
+        duration: 1500,
         isClosable: true,
       });
     }
@@ -246,9 +247,9 @@ export default function FeedCard({ recipe }) {
         }
       );
       toast({
-        title: "Comment Deleted Successfully",
-        status: "sucess",
-        duration: 1000,
+        title: "Comentario eliminado",
+        status: "success",
+        duration: 1200,
         isClosable: true,
       });
       // Update the local state to remove the deleted comment
@@ -259,9 +260,9 @@ export default function FeedCard({ recipe }) {
     } catch (error) {
       // Handle errors and display a toast message
       toast({
-        title: "Couldn't delete comment",
+        title: "No se pudo eliminar el comentario",
         status: "error",
-        duration: 1000,
+        duration: 1500,
         isClosable: true,
       });
     }
@@ -325,7 +326,7 @@ export default function FeedCard({ recipe }) {
         </CardHeader>
         <CardBody w="100%" mx="auto">
           <Divider width="100%" mx="auto" mb="10" />
-          <Carousel images={recipe.images}></Carousel>
+          <Carousel images={(recipe.images || []).map((p) => buildImageUrl(p))}></Carousel>
 
           <CardFooter
             px="0"
@@ -401,15 +402,15 @@ export default function FeedCard({ recipe }) {
           </Flex>
           <Text mb="0.5rem">{recipe.description}</Text>
           <Text as="strong">
-            {comments.length} {comments.length === 1 ? "comment" : "comments"}
+            {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
           </Text>
 
           {/* Render existing comments */}
           {reversedComments?.map((comment) => {
             // console.log(comment.userId, loggedInUser, "aaaaaaaaaaaaa");
             return comment.userId._id == loggedInUser._id ? (
-              <>
-                <div key={comment._id}>
+              <React.Fragment key={comment._id}>
+                <div>
                   <Flex gap="3rem" alignItems={"center"} my={4}>
                     <WrapItem display="flex" alignItems={"center"} width="100%">
                       <div
@@ -426,7 +427,7 @@ export default function FeedCard({ recipe }) {
                         <Avatar
                           size="sm"
                           name="Kent Dodds"
-                          src={`${process.env.REACT_APP_API_URL}/${comment.userId.profileImage}`}
+                          src={buildImageUrl(comment.userId.profileImage)}
                         />
                         <Flex align="center" gap={2} ml="8px">
                           <Text as="p" justifySelf="flex-start" fontWeight={"500"}>
@@ -494,7 +495,7 @@ export default function FeedCard({ recipe }) {
                     </WrapItem>
                   </Flex>
                 </div>
-              </>
+              </React.Fragment>
             ) : (
               <div key={comment._id}>
                 <Flex gap="3rem" alignItems={"center"} my={4}>
@@ -512,7 +513,7 @@ export default function FeedCard({ recipe }) {
                       <Avatar
                         size="sm"
                         name="Kent Dodds"
-                        src={`${process.env.REACT_APP_API_URL}/${comment.userId.profileImage}`}
+                        src={buildImageUrl(comment.userId.profileImage)}
                       />
                       <Flex align="center" gap={2} ml="8px">
                         <Text as="p" justifySelf="flex-start" fontWeight={"500"}>
@@ -545,9 +546,9 @@ export default function FeedCard({ recipe }) {
             _focus={{ boxShadow: "none" }}
             border="none"
             type="text"
-            placeholder="Add a comment..."
+            placeholder="Añadir un comentario..."
           />
-          <Button onClick={addCommentHandler}>{"Add Comment"}</Button>
+          <Button onClick={addCommentHandler}>Añadir comentario</Button>
         </CardBody>
       </Card>
     </div>
